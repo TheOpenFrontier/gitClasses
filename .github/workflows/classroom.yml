@@ -1,0 +1,42 @@
+name: GitHub Classroom — AutoGrader
+
+on: [push]
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  autograde:
+    name: AutoGrading
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout student repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-json-report
+
+      - name: Run AutoGrader — Module 01 Basics
+        id: grader-m01
+        uses: classroom-resources/autograding-python-grader@v1
+        with:
+          setup-command: 'pip install pytest'
+          python-test-file: 'curriculum-master/modules/module-01-basics/tests/test_basics.py'
+
+      # Grading reporter posts score as a GitHub Check
+      - name: Report grades to GitHub Classroom
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          AUTOGRADING_OUTPUT: ${{ steps.grader-m01.outputs.result }}
+        with:
+          runners: grader-m01
