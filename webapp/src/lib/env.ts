@@ -5,4 +5,14 @@ export const env = {
     process.env.GITHUB_MODELS_ENDPOINT ||
     "https://models.github.ai/inference",
   modelsModel: process.env.GITHUB_MODELS_MODEL || "openai/gpt-4o-mini",
+  /** Comma-separated GitHub usernames that have teacher/admin access */
+  teacherUsernames: (process.env.TEACHER_USERNAMES || "")
+    .split(",")
+    .map((u) => u.trim().toLowerCase())
+    .filter(Boolean),
 };
+
+/** Check if a GitHub username has teacher privileges */
+export function isTeacher(username: string): boolean {
+  return env.teacherUsernames.includes(username.toLowerCase());
+}

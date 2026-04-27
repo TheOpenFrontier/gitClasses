@@ -49,3 +49,11 @@ export const LEARNING_PATHS = [
     audience: "Advanced learners",
   },
 ] as const;
+
+export const MODULE_META: Record<string, { title: string; maxScore: number }> = {
+  "module-01-basics": { title: "Git Basics", maxScore: 100 },
+  "module-02-branching": { title: "Branching & Merging", maxScore: 100 },
+  "module-03-cicd": { title: "CI/CD", maxScore: 100 },
+  "module-04-opensource": { title: "Open Source", maxScore: 100 },
+  "module-05-capstone": { title: "Capstone", maxScore: 100 },
+};

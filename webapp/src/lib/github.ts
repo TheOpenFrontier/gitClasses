@@ -221,3 +221,188 @@ export async function commentOnIssue(
     body,
   });
 }
+
+// ─── Admin / Progress helpers ───────────────────────────────────────
+
+export interface OrgMember {
+  login: string;
+  avatarUrl: string;
+  role: "admin" | "member";
+}
+
+export async function listOrgMembers(
+  octokit: Octokit,
+  org: string
+): Promise<OrgMember[]> {
+  try {
+    const { data } = await octokit.orgs.listMembers({
+      org,
+      per_page: 100,
+    });
+
+    const members = await Promise.all(
+      data.map(async (m) => {
+        const role = await getOrgMembership(octokit, org, m.login);
+        return {
+          login: m.login,
+          avatarUrl: m.avatar_url,
+          role: role || "member",
+        } as OrgMember;
+      })
+    );
+
+    return members;
+  } catch {
+    return [];
+  }
+}
+
+export async function getWorkflowRunsByActor(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  actor: string
+): Promise<WorkflowRun[]> {
+  try {
+    const { data } = await octokit.actions.listWorkflowRunsForRepo({
+      owner,
+      repo,
+      actor,
+      per_page: 30,
+    });
+
+    return data.workflow_runs.map((run) => ({
+      id: run.id,
+      name: run.name || "Unknown",
+      status: run.status as WorkflowRun["status"],
+      conclusion: run.conclusion as WorkflowRun["conclusion"],
+      createdAt: run.created_at,
+      htmlUrl: run.html_url,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export interface ContractIssue {
+  number: number;
+  title: string;
+  username: string; // parsed from title "[Contract] - username"
+  labels: string[];
+  status: "pending" | "approved" | "in-progress" | "completed";
+  createdAt: string;
+  body: string;
+  learningPath?: "A" | "B" | "C";
+}
+
+export async function listContractIssues(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<ContractIssue[]> {
+  try {
+    const { data } = await octokit.issues.listForRepo({
+      owner,
+      repo,
+      labels: "contract-pending,contract-approved",
+      state: "all",
+      per_page: 100,
+    });
+
+    // Also fetch pending-only and approved-only since the above is AND logic
+    const [pending, approved] = await Promise.all([
+      octokit.issues.listForRepo({
+        owner,
+        repo,
+        labels: "contract-pending",
+        state: "open",
+        per_page: 100,
+      }),
+      octokit.issues.listForRepo({
+        owner,
+        repo,
+        labels: "contract-approved",
+        state: "all",
+        per_page: 100,
+      }),
+    ]);
+
+    const allIssues = new Map<number, (typeof pending.data)[number]>();
+    for (const issue of [...pending.data, ...approved.data]) {
+      allIssues.set(issue.number, issue);
+    }
+
+    return Array.from(allIssues.values()).map((issue) => {
+      const labels = issue.labels
+        .map((l) => (typeof l === "string" ? l : l.name || ""))
+        .filter(Boolean);
+
+      let status: ContractIssue["status"] = "pending";
+      if (labels.includes("contract-approved")) status = "approved";
+      if (labels.includes("contract-in-progress")) status = "in-progress";
+      if (labels.includes("contract-completed")) status = "completed";
+
+      // Parse learning path from body
+      let learningPath: "A" | "B" | "C" | undefined;
+      const body = issue.body || "";
+      if (body.includes("[x] **Path A")) learningPath = "A";
+      else if (body.includes("[x] **Path B")) learningPath = "B";
+      else if (body.includes("[x] **Path C")) learningPath = "C";
+
+      // Extract username from title "[Contract] - Name"
+      const titleMatch = issue.title.match(/\[Contract\]\s*-\s*(.+)/);
+      const username = titleMatch
+        ? titleMatch[1].trim()
+        : issue.user?.login || "unknown";
+
+      return {
+        number: issue.number,
+        title: issue.title,
+        username,
+        labels,
+        status,
+        createdAt: issue.created_at,
+        body,
+        learningPath,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export async function approveContract(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number
+): Promise<void> {
+  // Remove pending label
+  try {
+    await octokit.issues.removeLabel({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      name: "contract-pending",
+    });
+  } catch {
+    // label might not exist
+  }
+
+  // Add approved label
+  await octokit.issues.addLabels({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    labels: ["contract-approved"],
+  });
+
+  // Add approval comment
+  await octokit.issues.createComment({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    body: "✅ **Learning Contract Approved!**\n\nYour teacher has approved your learning contract. You may now begin working on the module. Good luck! 🚀",
+  });
+}
+

@@ -120,6 +120,9 @@ gitClasses/
 ├── docs/
 │   ├── AI Agents/Agentic.md       # AI architecture documentation
 │   └── TEACHER_SETUP.md           # Full teacher deployment guide
+├── webapp/                        # Next.js Teacher Admin & Student Dashboard
+│   ├── src/                       # Webapp source code (app, components, lib)
+│   └── package.json               # Webapp dependencies
 ├── COMMUNITY_GUIDELINES.md        # Code of Review & collaboration norms
 └── README.md                      # ← You are here
 ```

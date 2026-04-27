@@ -13,8 +13,10 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
+import { useTeacherStatus } from "@/hooks/use-admin-status";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -27,6 +29,11 @@ export function Navbar() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isTeacher } = useTeacherStatus();
+
+  const allNavItems = isTeacher
+    ? [...NAV_ITEMS, { href: "/admin", label: "Admin", icon: Shield }]
+    : NAV_ITEMS;
 
   return (
     <nav className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
@@ -40,9 +47,10 @@ export function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex md:items-center md:gap-1">
-            {NAV_ITEMS.map((item) => {
+            {allNavItems.map((item) => {
               const Icon = item.icon;
               const active = pathname.startsWith(item.href);
+              const isAdminLink = item.href === "/admin";
               return (
                 <Link
                   key={item.href}
@@ -50,7 +58,9 @@ export function Navbar() {
                   className={clsx(
                     "flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                     active
-                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
+                      ? isAdminLink
+                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                        : "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100"
                   )}
                 >
@@ -75,6 +85,11 @@ export function Navbar() {
                 <span className="text-sm font-medium">
                   {session.user?.githubUsername}
                 </span>
+                {isTeacher && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                    Teacher
+                  </span>
+                )}
                 <button
                   onClick={() => signOut()}
                   className="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
@@ -108,7 +123,7 @@ export function Navbar() {
       {mobileOpen && (
         <div className="border-t border-gray-200 dark:border-gray-800 md:hidden">
           <div className="space-y-1 px-4 py-3">
-            {NAV_ITEMS.map((item) => {
+            {allNavItems.map((item) => {
               const Icon = item.icon;
               const active = pathname.startsWith(item.href);
               return (

@@ -68,3 +68,28 @@ body {
   .chat-message-user { background: #1e1b4b; }
   .chat-message-assistant { background: #111827; }
 }
+
+/* Progress bar animation */
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+
+.animate-progress-fill {
+  animation: progress-fill 0.7s ease-out;
+}
+
+/* Admin panel accent */
+.admin-accent {
+  border-left: 3px solid #f59e0b;
+}
+
+/* Sortable table headers */
+.sortable-header:hover {
+  color: var(--foreground);
+}
+
+/* Smooth row hover for tables */
+.table-row-hover {
+  transition: background-color 150ms ease;
+}
+

@@ -58,3 +58,23 @@ The AI behavior in gitClasses is controlled by plain YAML files in `.github/prom
 4. Open a PR with your change — explain why the improvement helps students
 5. The teacher reviews and merges — the AI behavior updates immediately
 
+---
+
+## 📂 Curriculum Structure
+
+```text
+curriculum-master/
+├── README.md                  # Course overview & module map (You are here)
+├── community-resources/       # Student-contributed resources (graded!)
+└── modules/
+    ├── module-01-basics/      # Git fundamentals, first PR
+    │   ├── README.md
+    │   ├── resources.md
+    │   ├── starter-code/
+    │   └── tests/
+    └── module-02-branching/   # Feature branches, merge conflicts
+        ├── README.md
+        ├── resources.md
+        ├── starter-code/
+        └── tests/
+```

@@ -11,20 +11,35 @@ import {
   AlertCircle,
   Activity,
   Plus,
+  Shield,
+  TrendingUp,
 } from "lucide-react";
-import type { WorkflowRun } from "@/types";
+import { StatCard } from "@/components/stat-card";
+import { ProgressBar } from "@/components/progress-bar";
+import type { StudentProgress, WorkflowRun } from "@/types";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
+  const [progress, setProgress] = useState<StudentProgress | null>(null);
+  const [isTeacher, setIsTeacher] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (session) {
-      fetch("/api/github/workflow-runs")
-        .then((r) => r.json())
-        .then((data) => setRuns(data.runs || []))
-        .catch(() => {})
+      Promise.all([
+        fetch("/api/github/workflow-runs")
+          .then((r) => r.json())
+          .catch(() => ({ runs: [] })),
+        fetch("/api/progress")
+          .then((r) => r.json())
+          .catch(() => ({ progress: null, isTeacher: false })),
+      ])
+        .then(([runsData, progressData]) => {
+          setRuns(runsData.runs || []);
+          setProgress(progressData.progress || null);
+          setIsTeacher(progressData.isTeacher === true);
+        })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
@@ -53,6 +68,10 @@ export default function DashboardPage() {
     );
   }
 
+  const completedModules =
+    progress?.modules.filter((m) => m.passed).length ?? 0;
+  const totalModules = progress?.modules.length ?? 0;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
@@ -65,13 +84,24 @@ export default function DashboardPage() {
             Welcome back, {session.user?.name || session.user?.githubUsername}
           </p>
         </div>
-        <Link
-          href="/ai"
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          <Plus className="h-4 w-4" />
-          Ask AI
-        </Link>
+        <div className="flex items-center gap-3">
+          {isTeacher && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900 transition-colors"
+            >
+              <Shield className="h-4 w-4" />
+              Admin Panel
+            </Link>
+          )}
+          <Link
+            href="/ai"
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            <Plus className="h-4 w-4" />
+            Ask AI
+          </Link>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -79,148 +109,182 @@ export default function DashboardPage() {
         <StatCard
           icon={BookOpen}
           label="Modules Available"
-          value="2"
+          value={loading ? "…" : String(totalModules)}
           color="indigo"
         />
         <StatCard
           icon={CheckCircle}
           label="Modules Completed"
-          value="0"
+          value={loading ? "…" : String(completedModules)}
           color="green"
         />
         <StatCard
-          icon={GitPullRequest}
-          label="Peer Reviews Given"
-          value="0"
+          icon={TrendingUp}
+          label="Overall Score"
+          value={
+            loading
+              ? "…"
+              : `${progress?.overallScore ?? 0}/${progress?.overallMaxScore ?? 0}`
+          }
           color="purple"
         />
         <StatCard
           icon={Activity}
-          label="Recent Workflow Runs"
-          value={loading ? "..." : String(runs.length)}
+          label="Workflow Runs"
+          value={loading ? "…" : String(runs.length)}
           color="amber"
         />
       </div>
 
-      {/* Two column layout */}
+      {/* My Progress + Quick Actions */}
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
-        {/* Quick Actions */}
+        {/* My Progress */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Quick Actions
-          </h2>
-          <div className="mt-4 space-y-3">
-            <ActionLink
-              href="/courses"
-              icon={BookOpen}
-              label="Browse Course Modules"
-              description="Start or continue a module"
-            />
-            <ActionLink
-              href="/dashboard/contract"
-              icon={GitPullRequest}
-              label="Submit Learning Contract"
-              description="Define your learning goals"
-            />
-            <ActionLink
-              href="/dashboard/workflows"
-              icon={Activity}
-              label="Trigger Workflow"
-              description="Run module generation or grading"
-            />
-            <ActionLink
-              href="/ai"
-              icon={AlertCircle}
-              label="Get AI Help"
-              description="Ask about a module or debug test failures"
-            />
-          </div>
-        </div>
-
-        {/* Recent Workflow Runs */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Recent Workflow Runs
+            My Progress
           </h2>
           {loading ? (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-4">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-12 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800"
+                  className="h-16 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800"
                 />
               ))}
             </div>
-          ) : runs.length === 0 ? (
-            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-              No workflow runs yet. Push code to your repo to trigger the
-              AutoGrader.
-            </p>
-          ) : (
-            <div className="mt-4 space-y-3">
-              {runs.slice(0, 5).map((run) => (
-                <a
-                  key={run.id}
-                  href={run.htmlUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <RunStatusIcon
-                      status={run.status}
-                      conclusion={run.conclusion}
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {run.name}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(run.createdAt).toLocaleString()}
-                      </p>
+          ) : progress && progress.modules.length > 0 ? (
+            <div className="mt-4 space-y-4">
+              {progress.modules.map((mod) => (
+                <div key={mod.moduleSlug}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      {mod.passed ? (
+                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                      ) : mod.attempts > 0 ? (
+                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-gray-400" />
+                      )}
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {mod.moduleTitle}
+                      </span>
                     </div>
+                    <span className="text-xs tabular-nums text-gray-500">
+                      {mod.score}/{mod.maxScore}
+                    </span>
                   </div>
-                </a>
+                  <ProgressBar
+                    value={mod.score}
+                    max={mod.maxScore}
+                    size="sm"
+                    showLabel={false}
+                  />
+                </div>
               ))}
+
+              {/* Contract status */}
+              {progress.contractStatus !== "none" && (
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
+                  <GitPullRequest className="h-4 w-4 text-indigo-500" />
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Learning Contract:{" "}
+                    <span className="font-medium capitalize">
+                      {progress.contractStatus}
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
+          ) : (
+            <p className="mt-4 text-sm text-gray-500">
+              No progress data yet. Start a module to begin tracking!
+            </p>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  color,
-}: {
-  icon: typeof BookOpen;
-  label: string;
-  value: string;
-  color: string;
-}) {
-  const colorMap: Record<string, string> = {
-    indigo: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-400",
-    green: "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400",
-    purple: "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-400",
-    amber: "bg-amber-100 text-amber-600 dark:bg-amber-900 dark:text-amber-400",
-  };
+        {/* Quick Actions + Recent Runs */}
+        <div className="space-y-6">
+          {/* Quick Actions */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Quick Actions
+            </h2>
+            <div className="mt-4 space-y-3">
+              <ActionLink
+                href="/courses"
+                icon={BookOpen}
+                label="Browse Course Modules"
+                description="Start or continue a module"
+              />
+              <ActionLink
+                href="/dashboard/contract"
+                icon={GitPullRequest}
+                label="Submit Learning Contract"
+                description="Define your learning goals"
+              />
+              <ActionLink
+                href="/dashboard/workflows"
+                icon={Activity}
+                label="Trigger Workflow"
+                description="Run module generation or grading"
+              />
+              <ActionLink
+                href="/ai"
+                icon={AlertCircle}
+                label="Get AI Help"
+                description="Ask about a module or debug test failures"
+              />
+            </div>
+          </div>
 
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-      <div className="flex items-center gap-3">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorMap[color]}`}
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">
-            {value}
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+          {/* Recent Workflow Runs */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Recent Workflow Runs
+            </h2>
+            {loading ? (
+              <div className="mt-4 space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-12 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-800"
+                  />
+                ))}
+              </div>
+            ) : runs.length === 0 ? (
+              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                No workflow runs yet. Push code to your repo to trigger the
+                AutoGrader.
+              </p>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {runs.slice(0, 5).map((run) => (
+                  <a
+                    key={run.id}
+                    href={run.htmlUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between rounded-lg border border-gray-100 p-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800"
+                  >
+                    <div className="flex items-center gap-3">
+                      <RunStatusIcon
+                        status={run.status}
+                        conclusion={run.conclusion}
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {run.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(run.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

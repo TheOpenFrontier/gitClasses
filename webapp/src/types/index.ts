@@ -92,3 +92,34 @@ export interface ChatSession {
   moduleContext?: string; // which module the chat is about
   createdAt: string;
 }
+
+export interface StudentProgress {
+  username: string;
+  name: string;
+  avatarUrl: string;
+  modules: ModuleProgress[];
+  contractStatus: LearningContract["status"] | "none";
+  contractIssueNumber?: number;
+  learningPath?: "A" | "B" | "C";
+  lastActivity?: string;
+  overallScore: number;
+  overallMaxScore: number;
+}
+
+export interface ModuleProgress {
+  moduleSlug: string;
+  moduleTitle: string;
+  latestRun?: WorkflowRun;
+  score: number;
+  maxScore: number;
+  attempts: number;
+  passed: boolean;
+}
+
+export interface ClassroomOverview {
+  totalStudents: number;
+  contractsSubmitted: number;
+  contractsApproved: number;
+  averageScore: number;
+  moduleCompletionRates: Record<string, number>; // slug → percentage 0-100
+}
