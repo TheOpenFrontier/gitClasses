@@ -12,6 +12,7 @@ jobs:
     permissions:
       pull-requests: write
       contents: read
+      models: read
 
     steps:
       - name: Checkout PR
@@ -19,102 +20,75 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get changed files
-        id: changed
+      - name: Gather PR context
+        id: context
         run: |
+          # Get changed files
           git diff origin/main...HEAD --name-only > changed_files.txt
-          echo "files=$(cat changed_files.txt | tr '\n' ' ')" >> $GITHUB_OUTPUT
-          echo "count=$(wc -l < changed_files.txt)" >> $GITHUB_OUTPUT
+          CHANGED_FILES=$(cat changed_files.txt | tr '\n' ', ')
+          echo "changed_files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "file_count=$(wc -l < changed_files.txt)" >> $GITHUB_OUTPUT
 
-      - name: Post AI Facilitation Comment
+          # Get diff summary (truncated for token limits)
+          DIFF=$(git diff origin/main...HEAD --stat && echo "---" && git diff origin/main...HEAD -- '*.py' '*.md' | head -150)
+          echo "diff_summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Generate AI review guidance
+        id: ai-review
+        uses: actions/ai-inference@v1
+        with:
+          prompt-file: '.github/prompts/review-guide.prompt.yml'
+          input: |
+            pr_title: ${{ github.event.pull_request.title }}
+            changed_files: ${{ steps.context.outputs.changed_files }}
+            pr_description: ${{ github.event.pull_request.body }}
+            diff_summary: ${{ steps.context.outputs.diff_summary }}
+
+      - name: Post review guidance and checklist
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
-            const changedFiles = fs.readFileSync('changed_files.txt', 'utf8')
-              .trim().split('\n').filter(Boolean);
-
             const prAuthor = context.payload.pull_request.user.login;
-            const prTitle = context.payload.pull_request.title;
+            const aiGuidance = `${{ steps.ai-review.outputs.response }}`.replace(/`/g, '\\`');
 
-            // Detect what type of work this is
-            const hasPython = changedFiles.some(f => f.endsWith('.py'));
-            const hasContract = changedFiles.some(f => f.includes('learning-contract'));
-            const hasResources = changedFiles.some(f => f.includes('community-resources'));
-            const hasTests = changedFiles.some(f => f.includes('tests/'));
+            const body = `## 👋 Ready for Review — @${prAuthor}
 
-            // Build reviewer guidance tailored to what changed
-            let reviewerGuidance = '';
-            if (hasPython) {
-              reviewerGuidance += `
-            #### For your Code Review
-            - Does the code do what the Learning Contract described?
-            - Are functions named clearly — would someone new understand them?
-            - Are there comments where the logic is non-obvious?
-            - What happens with edge cases (empty input, zero, negative numbers)?`;
-            }
-            if (hasContract) {
-              reviewerGuidance += `
-            #### For the Learning Contract
-            - Are the 3 learning goals specific and measurable?
-            - Is the timeline realistic for the module scope?`;
-            }
-            if (hasResources) {
-              reviewerGuidance += `
-            #### For the Community Contribution
-            - Is the resource clearly described?
-            - Would a classmate find this genuinely useful?`;
-            }
-            if (!reviewerGuidance) {
-              reviewerGuidance = `\n- Read through the changes and leave at least one specific, constructive comment.`;
-            }
-
-            const body = `
-            ## 👋 Ready for Review — @${prAuthor}
-
-            Great work opening a PR for **"${prTitle}"**! Here's what happens next:
+            Great work opening a PR! Here's your review guide.
 
             ---
 
-            ### ✅ Pre-Review Checklist (for @${prAuthor})
-            Before requesting reviewers, confirm:
-            - [ ] The AutoGrader is passing (check the ✅ on your latest commit above)
-            - [ ] \`learning-contract.md\` is committed to your repo root
-            - [ ] Your PR description explains what you built and why
-            - [ ] You've added a resource to \`curriculum-master/community-resources/\`
+            ### ✅ Pre-Review Checklist
+            - [ ] AutoGrader is passing (check the status above)
+            - [ ] \`learning-contract.md\` exists in repo root
+            - [ ] PR description explains what you built
+            - [ ] Resource added to \`community-resources/\`
 
             ---
 
-            ### 🔍 Peer Reviewer Guide
-            When you review this PR, focus on:
-            ${reviewerGuidance}
-
-            **How to leave a great review:**
-            1. Click **"Files changed"** above → read through the diff
-            2. Click the **➕** next to any line to leave an inline comment
-            3. When done, click **"Review changes"** → choose **Comment** or **Approve**
-
-            > 📖 Need help? See [COMMUNITY_GUIDELINES.md](../blob/main/COMMUNITY_GUIDELINES.md) for the Code of Review and the 2-for-1 rule.
+            ${aiGuidance}
 
             ---
 
-            ### 📋 Changed Files (${changedFiles.length})
-            ${changedFiles.map(f => `- \`${f}\``).join('\n')}
+            ### 📖 How to Give a Great Review
+            1. Click **"Files changed"** → read the diff
+            2. Click **➕** next to any line to leave a comment
+            3. Click **"Review changes"** → **Comment** or **Approve**
+
+            > See [COMMUNITY_GUIDELINES.md](../blob/main/COMMUNITY_GUIDELINES.md) for the Code of Review.
 
             ---
-
-            *This checklist was generated automatically to help both sides of the review process.*
-            `;
+            *This guidance was generated by AI based on your actual changes to help both sides of the review process.*`;
 
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: body.trim()
+              body: body
             });
 
-            // Add labels
             try {
               await github.rest.issues.addLabels({
                 issue_number: context.issue.number,
@@ -123,5 +97,5 @@ jobs:
                 labels: ['needs-peer-review']
               });
             } catch (e) {
-              console.log('Label may not exist yet — skipping:', e.message);
+              console.log('Label may not exist yet:', e.message);
             }

@@ -2,7 +2,7 @@
 
 > **A Udemy-styled GitHub learning system** built on Git/Fork/CI-CD workflows.  
 > Teachers deploy courses in one click. Students learn through real Pull Requests, AutoGrading, and Peer Review.  
-> AI works behind the scenes to generate content, explain test failures, and assist with feedback — so teachers teach and students learn.
+> AI works behind the scenes — generating content, explaining failures, and facilitating feedback.
 
 ---
 
@@ -13,10 +13,11 @@
 |------|--------|
 | 1 | Click **"Use this template"** → create your class org repo |
 | 2 | Open [GitHub Classroom](https://classroom.github.com/) → link this template as an Assignment |
-| 3 | *(Optional)* Generate AI-powered modules — see [TEACHER_SETUP.md](./docs/TEACHER_SETUP.md#ai-course-generation) |
-| 4 | Share the **Invitation URL** — students handle the rest |
+| 3 | *(Optional)* Go to **Actions** → **"🤖 Generate AI Module"** → create modules instantly |
+| 4 | *(Optional)* Go to **Actions** → **"🎨 Generate Course Website"** → build a course site |
+| 5 | Share the **Invitation URL** — students handle the rest |
 
-> 💡 Your course website auto-deploys to GitHub Pages the moment a student accepts the assignment.
+> 💡 AI features use [GitHub Models](https://docs.github.com/en/github-models) — free, no API keys, works with your existing `GITHUB_TOKEN`.
 
 ### For Students
 | Step | Action |
@@ -26,7 +27,7 @@
 | 3 | Visit `Settings → Pages` to find your live course site |
 | 4 | Open `module-01-basics/README.md` and choose your **Learning Path** |
 
-> 🤖 An AI assistant will guide you through stuck points, explain test failures, and help you give better peer reviews — automatically.
+> 🤖 If a test fails, AI explains what went wrong and suggests a fix — right in your PR.
 
 ---
 
@@ -38,17 +39,15 @@
 | **B — Explorer** | Self-directed | Open an Issue using the **Learning Contract** template |
 | **C — Expert** | Advanced | Submit a PR to the `curriculum-master` to improve the course itself |
 
-> AI is available on every path — as a hint engine, an explainer, and a writing assistant for feedback.
-
 ---
 
 ## 🤖 How AutoGrading Works
 
 Every `git push` triggers a GitHub Actions workflow that:
 1. Runs `pytest` against your code
-2. **AI explains any failures in plain English** — you see *why* a test failed, not just that it did
-3. Reports a **score out of 100** directly in the PR
-4. Shows a ✅ green check or ❌ red X next to your commit
+2. Reports a **score out of 100** directly in the PR
+3. Shows a ✅ green check or ❌ red X next to your commit
+4. **If tests fail:** AI explains the failure in plain English and suggests a fix
 
 **Grading Breakdown:**
 | Component | Points | What It Checks |
@@ -65,9 +64,24 @@ Your PR will not be marked **Complete** until you:
 1. Leave **2 meaningful code reviews** on peers' Pull Requests
 2. Your PR receives **1 peer approval**
 
-> 💬 When you open a PR, an AI assistant automatically posts a structured review checklist and suggests specific questions for your peer reviewer to consider — helping both sides give and receive better feedback.
+> 💬 When you open a PR, AI generates a tailored review guide based on your actual code changes — helping both you and your reviewer know what to focus on.
 
 See [COMMUNITY_GUIDELINES.md](./COMMUNITY_GUIDELINES.md) for the Code of Review.
+
+---
+
+## 🧰 AI-Powered Workflows (For Teachers)
+
+All AI features use [GitHub Models](https://docs.github.com/en/github-models) via `actions/ai-inference` — no external services, no API keys, no cost.
+
+| Workflow | What It Does | How to Run |
+|---------|-------------|-----------|
+| **🤖 Generate AI Module** | Creates a complete module (README, code, tests, resources) from a topic | Actions → Run workflow |
+| **🎨 Generate Course Website** | Builds a premium GitHub Pages site from your existing modules | Actions → Run workflow |
+| **AutoGrader Explainer** | Explains test failures in plain English | Automatic — runs on every failed push |
+| **Review Facilitator** | Posts tailored review guidance on every new PR | Automatic — runs on every PR |
+
+> 📝 **Customize AI behavior** by editing the `.prompt.yml` files in `.github/prompts/`. They're plain YAML — no code required.
 
 ---
 
@@ -76,36 +90,30 @@ See [COMMUNITY_GUIDELINES.md](./COMMUNITY_GUIDELINES.md) for the Code of Review.
 ```
 gitClasses/
 ├── .devcontainer/
-│   └── devcontainer.json          # One-click Codespaces environment
+│   └── devcontainer.json          # One-click Codespaces dev environment
 ├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   │   ├── learning_contract.md   # Student "Learning Contract" issue template
-│   │   ├── bug_report.md          # Curriculum bug reports
-│   │   └── curriculum_improvement.md
-│   ├── scripts/
-│   │   └── generate-module.sh     # Teacher: AI module generator (OpenMAIC)
+│   ├── ISSUE_TEMPLATE/            # Learning Contract, Bug Report, Curriculum Improvement
+│   ├── prompts/                   # AI prompt templates (teacher-editable YAML)
+│   │   ├── generate-module.prompt.yml
+│   │   ├── generate-pages-site.prompt.yml
+│   │   ├── explain-test-failure.prompt.yml
+│   │   └── review-guide.prompt.yml
 │   └── workflows/
 │       ├── deploy-pages.yml       # Auto-deploys course site to GitHub Pages
-│       ├── classroom.yml          # AutoGrading — runs on every push
-│       ├── peer-review.yml        # Posts peer review checklist on PR open
-│       └── ai-peer-review.yml     # AI-assisted review draft for teacher/student aid
+│       ├── classroom.yml          # AutoGrading + AI failure explanation
+│       ├── peer-review.yml        # Peer review instructions on PR open
+│       ├── ai-peer-review.yml     # AI-generated review guidance from diffs
+│       ├── generate-module.yml    # Teacher: AI module generator
+│       └── generate-pages.yml     # Teacher: AI course website generator
 ├── curriculum-master/
 │   ├── README.md                  # Course overview & module map
 │   ├── community-resources/       # Student-contributed resources (graded!)
 │   └── modules/
-│       ├── module-01-basics/
-│       │   ├── README.md          # Objectives, paths, rubric
-│       │   ├── starter-code/app.py
-│       │   ├── tests/test_basics.py
-│       │   └── resources.md
-│       └── module-02-branching/
-│           ├── README.md
-│           ├── starter-code/
-│           └── tests/
+│       ├── module-01-basics/      # Git fundamentals, first PR
+│       └── module-02-branching/   # Feature branches, merge conflicts
 ├── docs/
-│   ├── AI Agents/Agentic.md       # AI integration architecture
-│   ├── TEACHER_SETUP.md           # Full teacher deployment guide
-│   └── Implementation Plan/       # Planning documents
+│   ├── AI Agents/Agentic.md       # AI architecture documentation
+│   └── TEACHER_SETUP.md           # Full teacher deployment guide
 ├── COMMUNITY_GUIDELINES.md        # Code of Review & collaboration norms
 └── README.md                      # ← You are here
 ```

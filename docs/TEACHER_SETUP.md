@@ -91,50 +91,57 @@ When students click it, GitHub automatically:
 
 ---
 
-## 🤖 AI Course Generation (Optional but Recommended)
+## 🤖 AI-Powered Features (Built-In, Free)
 
-gitClasses includes an AI-powered module generator backed by [OpenMAIC](https://github.com/THU-MAIC/OpenMAIC). Instead of writing lesson content from scratch, you describe a topic and the AI builds interactive slides, quizzes, and simulations in minutes.
+gitClasses uses [GitHub Models](https://docs.github.com/en/github-models) — GitHub's built-in AI inference API — to power all AI features. No external services, no API keys, no cost.
 
-### How It Works
+### For Teachers: Generate Modules with AI
 
-1. Open this repo in **[GitHub Codespaces](https://codespaces.new/)** (free for educators)
-2. Run the generator script with your topic:
-   ```bash
-   chmod +x .github/scripts/generate-module.sh
-   .github/scripts/generate-module.sh "Introduction to Variables" variables-intro
-   ```
-3. Follow the prompts — choose a free (Ollama) or paid LLM provider
-4. The AI generates slides, quizzes, and interactive simulations (~3 minutes)
-5. Export the classroom as HTML → the script scaffolds a module folder
-6. Commit and push → open a PR to `curriculum-master` → GitHub Pages serves it
+Instead of writing lesson content from scratch, describe a topic and AI generates a complete module:
 
-### LLM Provider Options
+1. Go to **Actions** tab → click **"🤖 Generate AI Module"**
+2. Click **"Run workflow"**
+3. Fill in:
+   - **Topic:** e.g., "Introduction to Python Functions"
+   - **Module Number:** e.g., "03"
+   - **Difficulty:** beginner / intermediate / advanced
+4. Wait ~30 seconds — a **draft PR** appears with the generated module
+5. Review the content, make any edits, then merge
 
-| Provider | Cost | Notes |
-|---------|------|-------|
-| **Ollama (local)** | 🆓 Free | Runs inside Codespaces; no API key needed |
-| Google Gemini Flash | 💰 Very low | Best speed/quality balance; recommended paid option |
-| OpenAI GPT-4o | 💰 Low | Highest quality for complex topics |
-| DeepSeek | 💰 Very low | Cost-effective alternative |
+The AI generates: `README.md`, `starter-code/app.py`, `tests/test_module.py`, and `resources.md`.
 
-> 💡 **Recommended for classrooms:** Start with Ollama — it's completely free and runs inside GitHub Codespaces with no setup beyond the devcontainer.
+### For Teachers: Generate the Course Website
 
-### What AI Can Generate for You
+1. Go to **Actions** → **"🎨 Generate Course Website"**
+2. Click **"Run workflow"**, fill in course title and description
+3. A draft PR appears with a modern, responsive `index.html`
+4. Review, merge → site auto-deploys to GitHub Pages
 
-| Content Type | Description |
-|------------|-------------|
-| **Slides** | AI-narrated lecture slides with spotlight and laser pointer effects |
-| **Quizzes** | Multiple choice, short answer, with instant AI grading |
-| **Simulations** | Interactive HTML5 experiments (physics, flowcharts, 3D models) |
-| **PBL Activities** | Project-based learning with role assignments and milestones |
+### Customize AI Behavior
 
-### AI in the Student Workflow (Automatic)
+All AI prompts are plain YAML files in `.github/prompts/`:
 
-Once deployed, AI works in the background for every student — **no extra setup required:**
+| File | What It Controls |
+|------|-----------------|
+| `generate-module.prompt.yml` | How modules are structured and written |
+| `generate-pages-site.prompt.yml` | How the course website looks and what sections it includes |
+| `explain-test-failure.prompt.yml` | How test failures are explained to students |
+| `review-guide.prompt.yml` | What reviewers are asked to look for in PRs |
 
-- **When the AutoGrader fails:** AI explains the failure in plain English and suggests a fix
-- **When a PR is opened:** AI posts a structured review guide for both the submitter and reviewer
-- **When a student is stuck:** Opening Codespaces gives them a live AI tutor for the current module topic
+Edit these directly in the GitHub web editor — changes take effect immediately.
+
+### Automatic Student-Facing AI
+
+These features work automatically — no teacher action required:
+
+| Feature | When It Runs | What Students See |
+|---------|-------------|-------------------|
+| **Test failure explainer** | Every failed `git push` | PR comment: plain-English explanation + suggested fix |
+| **Review facilitator** | Every new PR | PR comment: tailored review guidance for both submitter and reviewer |
+
+### Rate Limits
+
+GitHub Models free tier provides 150 requests/day on `gpt-4o-mini` — enough for a class of 30 students. See [GitHub Models docs](https://docs.github.com/en/github-models) for current limits.
 
 ---
 
@@ -178,6 +185,8 @@ To add or modify tests:
 - [ ] CODEOWNERS updated with your org slug
 - [ ] Branch protection rules set on `main`
 - [ ] Invitation link shared with students
+- [ ] *(Optional)* Run "🤖 Generate AI Module" to create additional modules
+- [ ] *(Optional)* Run "🎨 Generate Course Website" for a branded landing page
 
 ---
 
@@ -192,5 +201,15 @@ A: Branch protection will block the push. They'll see an error explaining they n
 **Q: Can I use this without GitHub Classroom?**  
 A: Yes! Students can manually fork the template. You lose the centralized gradebook but keep all other features.
 
-**Q: How do I add a new module?**  
-A: Copy `module-01-basics/` → rename it → update `curriculum-master/README.md` module map → update `classroom.yml` to include the new tests.
+**Q: How do I add a new module manually?**  
+A: Copy `module-01-basics/` → rename it → update `curriculum-master/README.md` module map → update `classroom.yml` to include the new tests. Or use the **"🤖 Generate AI Module"** workflow.
+
+**Q: Do the AI features cost anything?**  
+A: No. GitHub Models free tier is included with every GitHub account. It provides 150 requests/day on `gpt-4o-mini`, which is sufficient for most classrooms.
+
+**Q: Can I change what the AI generates?**  
+A: Yes! Edit the `.prompt.yml` files in `.github/prompts/`. They're plain YAML — change the system instructions, add constraints, or adjust the output format.
+
+**Q: Do I need API keys for the AI features?**  
+A: No. All AI features use the built-in `GITHUB_TOKEN` that every workflow already has. No external API keys needed.
+
