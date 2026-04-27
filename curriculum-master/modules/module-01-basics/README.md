@@ -37,11 +37,12 @@ Use the core Git concepts to build something original:
 - Your own idea? Open a Learning Contract issue and describe it!
 
 ### Path C — Expert 🧠
-Improve this curriculum:
+Improve this curriculum or the AI that powers it:
 
 - Find a bug or confusing section → open a [Bug Report issue](../../../../issues/new/choose)
 - Propose an improvement → open a [Curriculum Improvement issue](../../../../issues/new/choose)
 - Submit a Pull Request to `curriculum-master` with your changes
+- **Improve the AI prompts:** Edit `.github/prompts/*.prompt.yml` to make the AI generate better modules, explain failures more clearly, or give better review guidance — then submit a PR
 
 ---
 

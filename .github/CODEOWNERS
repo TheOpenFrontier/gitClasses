@@ -11,3 +11,6 @@ description: Require at least one peer approval before a PR can be merged
 
 # Community resources require an Expert reviewer  
 /curriculum-master/community-resources/  @your-org/experts @your-org/instructors
+
+# AI prompt improvements require an Expert reviewer and teacher sign-off
+/.github/prompts/  @your-org/experts @your-org/instructors

@@ -34,10 +34,11 @@ Build a project that requires collaboration:
 - A collaborative blog where articles are written on branches
 
 ### Path C — Expert 🧠
-Improve the curriculum:
+Improve the curriculum or the AI that powers it:
 - Add a new test case to `test_calculator.py`
 - Write a better branching strategy guide for `resources.md`
 - Create a "conflict resolution" exercise file for future students
+- **Improve the AI prompts:** Edit `.github/prompts/*.prompt.yml` to make test failure explanations clearer, review guidance more specific, or module generation more structured — then submit a PR
 
 ---
 

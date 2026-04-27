@@ -138,6 +138,18 @@ Teachers can upgrade to metered billing via GitHub Settings if higher throughput
 
 ---
 
+## Path C: Student AI Contributions
+
+In gitClasses, AI is not a black box—it is infrastructure that students can improve.
+Expert-level (Path C) students are encouraged to submit Pull Requests to modify the YAML prompt templates in `.github/prompts/`. This allows students to:
+- Make the AutoGrader failure explanations clearer
+- Improve the quality of peer review guidance
+- Add edge-case questions to the bonus quiz generator
+
+All prompt changes go through the standard peer review and teacher approval process.
+
+---
+
 ## References
 
 - [GitHub Models Documentation](https://docs.github.com/en/github-models)
