@@ -21,6 +21,7 @@ assignees: []
 - [ ] **Path A (Guided):** I will follow the step-by-step starter code in `module-01-basics/starter-code/`
 - [ ] **Path B (Explorer):** I will build an original project using this module's core concepts
 - [ ] **Path C (Expert):** I will submit a Pull Request to improve the curriculum itself
+- [ ] **Path D (AI-Augmented):** I will use the OpenMAIC AI generator to build or explore a module, and document what the AI got right vs. what I had to verify
 
 ---
 
@@ -51,6 +52,7 @@ What are the 3 main things you want to master in this module?
 - [ ] I agree to review **at least 2** peers' Pull Requests before my own work is considered complete
 - [ ] I have read the [Community Guidelines](../../COMMUNITY_GUIDELINES.md)
 - [ ] I understand that copying code without attribution violates the collaboration policy
+- [ ] *(Path D only)* I will create `ai-learning-log.md` documenting my AI interactions and verification steps
 
 ---
 

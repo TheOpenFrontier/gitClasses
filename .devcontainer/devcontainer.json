@@ -1,0 +1,41 @@
+{
+  "name": "Open Classroom — AI Generator",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+  "postCreateCommand": "npm install -g pnpm && pip install pytest pytest-json-report && echo '✅ gitClasses dev environment ready!' && echo '' && echo '📦 To set up the AI generator, run:' && echo '   git submodule update --init --recursive' && echo '   cd generator && pnpm install && cp .env.example .env.local' && echo '' && echo '🤖 Then generate a module with:' && echo '   chmod +x .github/scripts/generate-module.sh' && echo \"   .github/scripts/generate-module.sh 'Your Topic' module-slug\"",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "GitHub.copilot",
+        "GitHub.vscode-pull-request-github",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.python"
+        }
+      }
+    }
+  },
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "🤖 OpenMAIC — AI Classroom Generator",
+      "onAutoForward": "notify"
+    }
+  },
+  "remoteEnv": {
+    "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}"
+  }
+}

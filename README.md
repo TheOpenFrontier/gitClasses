@@ -33,6 +33,7 @@
 | **A — Guided** | New learners | Follow `module-01-basics/README.md` step by step |
 | **B — Explorer** | Self-directed | Open an Issue using the **Learning Contract** template |
 | **C — Expert** | Advanced | Submit a PR to the `curriculum-master` to improve the course itself |
+| **D — AI-Augmented** | Curious learners | Use the OpenMAIC AI generator, then audit what it built |
 
 ---
 
@@ -49,6 +50,27 @@ Every `git push` triggers a GitHub Actions workflow that:
 | Module Mastery | 50 pts | Core code logic passes tests |
 | Learning Contract | 25 pts | `learning-contract.md` exists and is filled out |
 | Community Contribution | 25 pts | You added a resource to `community-resources/` |
+
+---
+
+## 🤖 AI Tools (Path D & Teachers)
+
+**gitClasses is AI-native** — you can generate entire interactive modules using [OpenMAIC](https://github.com/THU-MAIC/OpenMAIC), an open-source multi-agent AI classroom built by Tsinghua University.
+
+### For Teachers: Generate a Module in Codespaces
+1. Open this repo in **[GitHub Codespaces](https://codespaces.new/TheOpenFrontier/gitClasses)**
+2. In the terminal:
+   ```bash
+   chmod +x .github/scripts/generate-module.sh
+   .github/scripts/generate-module.sh "Your Topic" module-slug
+   ```
+3. Follow the prompts — the AI builds slides, quizzes, and simulations (~3 min)
+4. Export the HTML → commit to `curriculum-master/modules/` → open a PR
+
+> 💡 **Free option:** Uses Ollama (local LLM) — no API key required.
+
+### For Path D Students: Be an AI Auditor
+You don't just *use* AI — you *verify* it. See [`docs/ai-learning-log-template.md`](./docs/ai-learning-log-template.md) for what to document.
 
 ---
 
