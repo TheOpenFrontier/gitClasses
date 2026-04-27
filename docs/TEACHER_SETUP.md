@@ -91,6 +91,53 @@ When students click it, GitHub automatically:
 
 ---
 
+## 🤖 AI Course Generation (Optional but Recommended)
+
+gitClasses includes an AI-powered module generator backed by [OpenMAIC](https://github.com/THU-MAIC/OpenMAIC). Instead of writing lesson content from scratch, you describe a topic and the AI builds interactive slides, quizzes, and simulations in minutes.
+
+### How It Works
+
+1. Open this repo in **[GitHub Codespaces](https://codespaces.new/)** (free for educators)
+2. Run the generator script with your topic:
+   ```bash
+   chmod +x .github/scripts/generate-module.sh
+   .github/scripts/generate-module.sh "Introduction to Variables" variables-intro
+   ```
+3. Follow the prompts — choose a free (Ollama) or paid LLM provider
+4. The AI generates slides, quizzes, and interactive simulations (~3 minutes)
+5. Export the classroom as HTML → the script scaffolds a module folder
+6. Commit and push → open a PR to `curriculum-master` → GitHub Pages serves it
+
+### LLM Provider Options
+
+| Provider | Cost | Notes |
+|---------|------|-------|
+| **Ollama (local)** | 🆓 Free | Runs inside Codespaces; no API key needed |
+| Google Gemini Flash | 💰 Very low | Best speed/quality balance; recommended paid option |
+| OpenAI GPT-4o | 💰 Low | Highest quality for complex topics |
+| DeepSeek | 💰 Very low | Cost-effective alternative |
+
+> 💡 **Recommended for classrooms:** Start with Ollama — it's completely free and runs inside GitHub Codespaces with no setup beyond the devcontainer.
+
+### What AI Can Generate for You
+
+| Content Type | Description |
+|------------|-------------|
+| **Slides** | AI-narrated lecture slides with spotlight and laser pointer effects |
+| **Quizzes** | Multiple choice, short answer, with instant AI grading |
+| **Simulations** | Interactive HTML5 experiments (physics, flowcharts, 3D models) |
+| **PBL Activities** | Project-based learning with role assignments and milestones |
+
+### AI in the Student Workflow (Automatic)
+
+Once deployed, AI works in the background for every student — **no extra setup required:**
+
+- **When the AutoGrader fails:** AI explains the failure in plain English and suggests a fix
+- **When a PR is opened:** AI posts a structured review guide for both the submitter and reviewer
+- **When a student is stuck:** Opening Codespaces gives them a live AI tutor for the current module topic
+
+---
+
 ## 📊 Monitoring Progress
 
 | Tool | What It Shows |

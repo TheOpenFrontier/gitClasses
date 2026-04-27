@@ -1,12 +1,11 @@
-name: AI Peer Review Assistant
+name: AI Review Facilitator
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened]
 
-# Only run when a human opens a PR (not bots)
 jobs:
-  ai-peer-review:
+  facilitate-review:
     runs-on: ubuntu-latest
     if: github.actor != 'github-actions[bot]'
 
@@ -24,86 +23,88 @@ jobs:
         id: changed
         run: |
           git diff origin/main...HEAD --name-only > changed_files.txt
-          cat changed_files.txt
+          echo "files=$(cat changed_files.txt | tr '\n' ' ')" >> $GITHUB_OUTPUT
           echo "count=$(wc -l < changed_files.txt)" >> $GITHUB_OUTPUT
 
-      - name: Generate AI Draft Review via GitHub Models
+      - name: Post AI Facilitation Comment
         uses: actions/github-script@v7
-        env:
-          CHANGED_FILES_COUNT: ${{ steps.changed.outputs.count }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
+            const changedFiles = fs.readFileSync('changed_files.txt', 'utf8')
+              .trim().split('\n').filter(Boolean);
 
-            // Read changed files list
-            const changedFiles = fs.readFileSync('changed_files.txt', 'utf8').trim().split('\n').filter(Boolean);
-
-            // Read content of key changed Python files (cap at 3 files, 100 lines each)
-            let codeSnippets = '';
-            let filesRead = 0;
-            for (const file of changedFiles) {
-              if (file.endsWith('.py') && filesRead < 3) {
-                try {
-                  const content = fs.readFileSync(file, 'utf8');
-                  const lines = content.split('\n').slice(0, 100).join('\n');
-                  codeSnippets += `\n\n**\`${file}\`**\n\`\`\`python\n${lines}\n\`\`\``;
-                  filesRead++;
-                } catch (e) {
-                  // File may not exist locally in this context
-                }
-              }
-            }
-
-            // Compose the AI-drafted review comment
             const prAuthor = context.payload.pull_request.user.login;
             const prTitle = context.payload.pull_request.title;
-            const isFirstOpen = context.payload.action === 'opened';
 
-            // Only post the full AI draft on first open; update on sync
-            if (!isFirstOpen) {
-              console.log('PR synchronized — skipping re-post of AI review draft.');
-              return;
+            // Detect what type of work this is
+            const hasPython = changedFiles.some(f => f.endsWith('.py'));
+            const hasContract = changedFiles.some(f => f.includes('learning-contract'));
+            const hasResources = changedFiles.some(f => f.includes('community-resources'));
+            const hasTests = changedFiles.some(f => f.includes('tests/'));
+
+            // Build reviewer guidance tailored to what changed
+            let reviewerGuidance = '';
+            if (hasPython) {
+              reviewerGuidance += `
+            #### For your Code Review
+            - Does the code do what the Learning Contract described?
+            - Are functions named clearly — would someone new understand them?
+            - Are there comments where the logic is non-obvious?
+            - What happens with edge cases (empty input, zero, negative numbers)?`;
+            }
+            if (hasContract) {
+              reviewerGuidance += `
+            #### For the Learning Contract
+            - Are the 3 learning goals specific and measurable?
+            - Is the timeline realistic for the module scope?`;
+            }
+            if (hasResources) {
+              reviewerGuidance += `
+            #### For the Community Contribution
+            - Is the resource clearly described?
+            - Would a classmate find this genuinely useful?`;
+            }
+            if (!reviewerGuidance) {
+              reviewerGuidance = `\n- Read through the changes and leave at least one specific, constructive comment.`;
             }
 
             const body = `
-            ## 🤖 AI-Drafted Peer Review
+            ## 👋 Ready for Review — @${prAuthor}
 
-            > **Note:** This is an AI-generated draft to help your peer reviewer get started.  
-            > A human peer must still read your code and add their own comments.
+            Great work opening a PR for **"${prTitle}"**! Here's what happens next:
 
             ---
 
-            Hi @${prAuthor}! Here's an automated first-pass review of **"${prTitle}"**:
+            ### ✅ Pre-Review Checklist (for @${prAuthor})
+            Before requesting reviewers, confirm:
+            - [ ] The AutoGrader is passing (check the ✅ on your latest commit above)
+            - [ ] \`learning-contract.md\` is committed to your repo root
+            - [ ] Your PR description explains what you built and why
+            - [ ] You've added a resource to \`curriculum-master/community-resources/\`
 
-            ### 📁 Files Changed (${changedFiles.length})
+            ---
+
+            ### 🔍 Peer Reviewer Guide
+            When you review this PR, focus on:
+            ${reviewerGuidance}
+
+            **How to leave a great review:**
+            1. Click **"Files changed"** above → read through the diff
+            2. Click the **➕** next to any line to leave an inline comment
+            3. When done, click **"Review changes"** → choose **Comment** or **Approve**
+
+            > 📖 Need help? See [COMMUNITY_GUIDELINES.md](../blob/main/COMMUNITY_GUIDELINES.md) for the Code of Review and the 2-for-1 rule.
+
+            ---
+
+            ### 📋 Changed Files (${changedFiles.length})
             ${changedFiles.map(f => `- \`${f}\``).join('\n')}
 
-            ### ✅ Automated Checklist
-            - [ ] \`learning-contract.md\` exists in repo root
-            - [ ] AutoGrader is passing (check the ✅ on your latest commit)
-            - [ ] 2 peer reviews completed (paste links in PR description)
-            - [ ] Code has comments explaining non-obvious logic
-            - [ ] Variable names are descriptive (not \`x\`, \`temp\`, \`data\`)
-
-            ### 💬 Questions for Your Human Peer Reviewer
-            > These are conversation starters — a real peer should answer these by reading your code:
-
-            1. **Correctness:** Does the implementation match what the Learning Contract described?
-            2. **Readability:** Could someone unfamiliar with this project understand it in 5 minutes?
-            3. **Edge cases:** What happens if the inputs are empty, negative, or unexpected?
-            4. **Community contribution:** Did you add something to \`community-resources/\`?
-
             ---
 
-            ### 🎓 Path D Students — AI Learning Log
-            If you used AI assistance (GitHub Copilot, ChatGPT, the OpenMAIC generator, etc.):
-            - [ ] \`ai-learning-log.md\` exists in your module folder
-            - [ ] You documented what the AI got right *and* what you had to verify/correct
-
-            ---
-
-            *This draft was generated by the gitClasses peer-review bot. Human review is required before merge.*
+            *This checklist was generated automatically to help both sides of the review process.*
             `;
 
             await github.rest.issues.createComment({
@@ -113,14 +114,14 @@ jobs:
               body: body.trim()
             });
 
-            // Update label to reflect AI review was posted
+            // Add labels
             try {
               await github.rest.issues.addLabels({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                labels: ['ai-review-posted', 'needs-human-review']
+                labels: ['needs-peer-review']
               });
             } catch (e) {
-              console.log('Labels may not exist yet:', e.message);
+              console.log('Label may not exist yet — skipping:', e.message);
             }
