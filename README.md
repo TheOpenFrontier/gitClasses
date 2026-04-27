@@ -79,9 +79,12 @@ All AI features use [GitHub Models](https://docs.github.com/en/github-models) vi
 | **🤖 Generate AI Module** | Creates a complete module (README, code, tests, resources) from a topic | Actions → Run workflow |
 | **🎨 Generate Course Website** | Builds a premium GitHub Pages site from your existing modules | Actions → Run workflow |
 | **AutoGrader Explainer** | Explains test failures in plain English | Automatic — runs on every failed push |
+| **Bonus Quiz Generator** | Posts 3 challenge questions from the student's actual code | Automatic — runs on every passing push |
 | **Review Facilitator** | Posts tailored review guidance on every new PR | Automatic — runs on every PR |
+| **Contract Curriculum** | Generates a personalized learning guide when a Learning Contract is approved | Automatic — triggered by teacher "Approved" comment |
 
 > 📝 **Customize AI behavior** by editing the `.prompt.yml` files in `.github/prompts/`. They're plain YAML — no code required.
+> 🧠 **Path C students** can submit PRs to improve these prompts — see the [Curriculum Overview](curriculum-master/README.md).
 
 ---
 
@@ -97,14 +100,17 @@ gitClasses/
 │   │   ├── generate-module.prompt.yml
 │   │   ├── generate-pages-site.prompt.yml
 │   │   ├── explain-test-failure.prompt.yml
-│   │   └── review-guide.prompt.yml
+│   │   ├── generate-quiz.prompt.yml
+│   │   ├── review-guide.prompt.yml
+│   │   └── generate-contract-curriculum.prompt.yml
 │   └── workflows/
 │       ├── deploy-pages.yml       # Auto-deploys course site to GitHub Pages
-│       ├── classroom.yml          # AutoGrading + AI failure explanation
+│       ├── classroom.yml          # AutoGrading + AI failure explanation + bonus quiz
 │       ├── peer-review.yml        # Peer review instructions on PR open
 │       ├── ai-peer-review.yml     # AI-generated review guidance from diffs
 │       ├── generate-module.yml    # Teacher: AI module generator
-│       └── generate-pages.yml     # Teacher: AI course website generator
+│       ├── generate-pages.yml     # Teacher: AI course website generator
+│       └── contract-curriculum.yml # Auto: personalized curriculum on contract approval
 ├── curriculum-master/
 │   ├── README.md                  # Course overview & module map
 │   ├── community-resources/       # Student-contributed resources (graded!)

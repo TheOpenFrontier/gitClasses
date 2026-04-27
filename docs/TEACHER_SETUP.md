@@ -126,9 +126,13 @@ All AI prompts are plain YAML files in `.github/prompts/`:
 | `generate-module.prompt.yml` | How modules are structured and written |
 | `generate-pages-site.prompt.yml` | How the course website looks and what sections it includes |
 | `explain-test-failure.prompt.yml` | How test failures are explained to students |
+| `generate-quiz.prompt.yml` | What bonus quiz questions are asked when tests pass |
 | `review-guide.prompt.yml` | What reviewers are asked to look for in PRs |
+| `generate-contract-curriculum.prompt.yml` | How personalized learning guides are structured for approved Learning Contracts |
 
 Edit these directly in the GitHub web editor — changes take effect immediately.
+
+> 🧠 **Path C students** can also submit PRs to improve these prompts — see the [Curriculum Overview](../curriculum-master/README.md).
 
 ### Automatic Student-Facing AI
 
@@ -137,7 +141,9 @@ These features work automatically — no teacher action required:
 | Feature | When It Runs | What Students See |
 |---------|-------------|-------------------|
 | **Test failure explainer** | Every failed `git push` | PR comment: plain-English explanation + suggested fix |
+| **Bonus quiz generator** | Every passing `git push` | PR comment: 3 bonus challenge questions from their code |
 | **Review facilitator** | Every new PR | PR comment: tailored review guidance for both submitter and reviewer |
+| **Contract curriculum** | Teacher comments "Approved" on a Learning Contract issue | Issue comment: personalized learning guide with steps, resources, and milestones |
 
 ### Rate Limits
 

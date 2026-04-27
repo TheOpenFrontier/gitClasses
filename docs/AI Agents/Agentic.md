@@ -43,7 +43,9 @@ All AI behavior is controlled by **editable YAML prompt files** committed to the
 | `generate-module.prompt.yml` | Generates a complete module (README, code, tests, resources) | `generate-module.yml` workflow |
 | `generate-pages-site.prompt.yml` | Generates a premium GitHub Pages course website | `generate-pages.yml` workflow |
 | `explain-test-failure.prompt.yml` | Explains AutoGrader failures in plain English | `classroom.yml` workflow |
+| `generate-quiz.prompt.yml` | Generates 3 bonus challenge questions from student code | `classroom.yml` workflow |
 | `review-guide.prompt.yml` | Generates tailored peer review guidance from PR diffs | `ai-peer-review.yml` workflow |
+| `generate-contract-curriculum.prompt.yml` | Generates a personalized learning guide from an approved Learning Contract | `contract-curriculum.yml` workflow |
 
 ### 2. AI Workflows (`.github/workflows/`)
 
@@ -51,8 +53,9 @@ All AI behavior is controlled by **editable YAML prompt files** committed to the
 |---------|---------|-------------|
 | `generate-module.yml` | Manual (workflow_dispatch) | Teacher fills in topic/difficulty → AI generates module → draft PR |
 | `generate-pages.yml` | Manual (workflow_dispatch) | Scans existing modules → AI generates course website → draft PR |
-| `classroom.yml` | On push | Runs AutoGrader; on failure, AI explains what went wrong |
+| `classroom.yml` | On push | Runs AutoGrader; on failure explains what went wrong; on success posts bonus quiz questions |
 | `ai-peer-review.yml` | On PR opened | Reads the diff, generates specific review guidance for both sides |
+| `contract-curriculum.yml` | On issue comment ("Approved") | Parses Learning Contract → generates personalized curriculum → posts on issue |
 
 ### 3. The `actions/ai-inference` Action
 
