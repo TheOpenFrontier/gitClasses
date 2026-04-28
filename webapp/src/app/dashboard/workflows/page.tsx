@@ -45,6 +45,11 @@ const WORKFLOWS: WorkflowDef[] = [
         placeholder: "e.g., 03",
       },
       {
+        key: "module_description",
+        label: "Module Description",
+        placeholder: "e.g., Focus on recursive functions...",
+      },
+      {
         key: "difficulty",
         label: "Difficulty Level",
         placeholder: "beginner, intermediate, or advanced",

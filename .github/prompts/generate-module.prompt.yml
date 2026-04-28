@@ -21,6 +21,7 @@ messages:
 
       **Topic:** {{topic}}
       **Module Number:** {{module_number}}
+      **Description/Context:** {{module_description}}
       **Difficulty Level:** {{difficulty}}
       **Prerequisites:** {{prerequisites}}
 

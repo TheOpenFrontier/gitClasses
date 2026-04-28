@@ -11,6 +11,11 @@ on:
         description: 'Module number (e.g., "03")'
         required: true
         type: string
+      module_description:
+        description: 'Module context or specific instructions for the AI'
+        required: false
+        type: string
+        default: 'Provide a comprehensive lesson covering the basics of this topic.'
       difficulty:
         description: 'Difficulty level'
         required: true
@@ -48,6 +53,7 @@ jobs:
           input: |
             topic: ${{ inputs.topic }}
             module_number: ${{ inputs.module_number }}
+            module_description: ${{ inputs.module_description }}
             difficulty: ${{ inputs.difficulty }}
             prerequisites: ${{ inputs.prerequisites }}
 
@@ -86,8 +92,8 @@ jobs:
               print("ERROR: No AI response received")
               sys.exit(1)
 
-          # Split on "## FILE:" markers
-          sections = re.split(r'## FILE:\s*', content)
+          # Split on "# FILE:" or "## FILE:" markers, case-insensitive
+          sections = re.split(r'(?i)#+\s*FILE:\s*', content)
 
           for section in sections[1:]:  # skip preamble before first FILE marker
               lines = section.strip().split('\n')
@@ -148,6 +154,7 @@ jobs:
           This module was generated using GitHub Models via \`actions/ai-inference\`.
 
           **Topic:** ${MODULE_TOPIC}
+          **Description:** ${{ inputs.module_description }}
           **Difficulty:** ${{ inputs.difficulty }}
           **Prerequisites:** ${{ inputs.prerequisites }}
           **Prompt:** \`.github/prompts/generate-module.prompt.yml\`
