@@ -51,11 +51,11 @@ jobs:
         with:
           prompt-file: '.github/prompts/generate-module.prompt.yml'
           input: |
-            topic: ${{ inputs.topic }}
-            module_number: ${{ inputs.module_number }}
-            module_description: ${{ inputs.module_description }}
-            difficulty: ${{ inputs.difficulty }}
-            prerequisites: ${{ inputs.prerequisites }}
+            topic: ${{ toJSON(inputs.topic) }}
+            module_number: ${{ toJSON(inputs.module_number) }}
+            module_description: ${{ toJSON(inputs.module_description) }}
+            difficulty: ${{ toJSON(inputs.difficulty) }}
+            prerequisites: ${{ toJSON(inputs.prerequisites) }}
 
       - name: Parse and write module files
         env:
