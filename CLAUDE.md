@@ -73,7 +73,10 @@ Prompt files:
 
 ## Webapp (`/webapp`)
 
-A Next.js 16 (App Router) multi-tenant webapp that serves as both a Udemy-style course viewer and the gitClasses docs site.
+A Next.js 16 (App Router) multi-tenant SaaS platform serving as both a Udemy-style course viewer and the gitClasses admin/docs site. Two deployment tiers:
+
+- **`main` branch** — Free/classroom tier. Stateless, GitHub OAuth only, GitHub Classroom handles repos.
+- **`gitClass` branch** — Production SaaS. GitHub App auth, SQLite database, webhook-driven grades, automated repo distribution.
 
 ### Running the Webapp
 
@@ -84,42 +87,89 @@ npm run dev       # http://localhost:3000
 npm run build     # production build
 ```
 
-Requires `.env.local` — copy from `.env.local.example` and fill in GitHub OAuth credentials.
+Requires `.env.local` — copy from `.env.local.example` and fill in credentials.
 
 ### Tech Stack
 - **Next.js 16.2** with App Router, TypeScript, Tailwind CSS
-- **next-auth v4** with GitHub OAuth (scopes: `read:org repo workflow`)
-- **@octokit/rest** for GitHub API (trigger workflows, read repo content, create issues)
-- **GitHub Models** for AI chat (OpenAI-compatible endpoint via `GITHUB_TOKEN`)
+- **next-auth v4** (NOT v5) with GitHub OAuth (scopes: `read:org repo workflow`)
+- **@octokit/rest** + **@octokit/auth-app** for GitHub API (App installation tokens)
+- **better-sqlite3** for persistent SQLite database (WAL mode; `serverExternalPackages` required in `next.config.ts`)
+- **GitHub Models** for AI chat (OpenAI-compatible SSE endpoint)
 - **react-markdown + remark-gfm** for rendering curriculum markdown
 
-### Webapp Architecture
+### App Routes
 
-Routes:
-- `/` — Landing page (public)
-- `/dashboard` — Authenticated user dashboard with stats, quick actions, workflow runs
-- `/dashboard/contract` — Learning Contract submission form → creates GitHub Issue
-- `/dashboard/workflows` — Trigger GitHub Actions workflows from the UI (module generation, deploy, grading)
-- `/courses` — Module catalog (Udemy-style card grid)
-- `/courses/[slug]` — Module detail with tabs: Guide, Starter Code, Tests, Resources
-- `/ai` — AI Assistant chat interface with streaming SSE, quick prompts, module context
-- `/docs` — Documentation hub
-- `/docs/[slug]` — Individual doc pages (overview, teacher-setup, autograding, etc.)
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page (public) |
+| `/dashboard` | Student progress, workflow runs, quick actions |
+| `/dashboard/contract` | Learning Contract submission form |
+| `/dashboard/workflows` | Trigger GitHub Actions workflows from UI |
+| `/courses` | Udemy-style module catalog |
+| `/courses/[slug]` | Module detail: Guide / Starter Code / Tests / Resources |
+| `/ai` | AI Assistant chat (streaming SSE, module-aware context) |
+| `/admin` | Teacher admin panel — student roster, contract approvals, invites |
+| `/admin/drafts` | Review AI-generated module PRs (diff viewer, merge/reject) |
+| `/admin/students/[username]` | Per-student detail view |
+| `/docs` | Documentation hub |
+| `/docs/[slug]` | Individual doc pages (8 built-in) |
 
-API Routes:
-- `/api/auth/[...nextauth]` — GitHub OAuth via next-auth v4
-- `/api/github/module-content` — Fetches module content from GitHub repo via Octokit
-- `/api/github/workflow-runs` — Lists recent workflow runs
-- `/api/github/trigger-workflow` — Triggers a GitHub Actions workflow dispatch
-- `/api/github/create-issue` — Creates an issue (used for Learning Contracts)
-- `/api/ai/chat` — Streams AI chat responses via GitHub Models (OpenAI-compatible SSE)
+### API Routes
 
-Key lib files:
-- `src/lib/auth.ts` — NextAuth config with GitHub provider
-- `src/lib/github.ts` — All Octokit operations (module content, workflows, issues)
-- `src/lib/api-auth.ts` — Helper to get authenticated Octokit context in API routes
-- `src/lib/env.ts` — Environment variable access
-- `src/lib/constants.ts` — Workflow files, grading weights, learning paths
+| Route | Description |
+|-------|-------------|
+| `/api/auth/[...nextauth]` | GitHub OAuth via next-auth v4 |
+| `/api/progress` | Student progress — DB-first, GitHub API fallback |
+| `/api/ai/chat` | Streams AI chat via GitHub Models (SSE) |
+| `/api/github/module-content` | Fetch module content from GitHub |
+| `/api/github/workflow-runs` | List recent workflow runs |
+| `/api/github/trigger-workflow` | Dispatch a GitHub Actions workflow |
+| `/api/github/create-issue` | Create GitHub Issue (Learning Contracts) |
+| `/api/admin/overview` | Classroom stats — syncs org members to DB |
+| `/api/admin/students` | All student progress from DB |
+| `/api/admin/students/[username]` | Single student detail |
+| `/api/admin/assignments` | CRUD for assignment definitions |
+| `/api/admin/assignments/[slug]/distribute` | Distribute assignment to students (creates repos) |
+| `/api/admin/contracts/[issueNumber]/approve` | Approve a Learning Contract |
+| `/api/admin/invite` | Invite users to the GitHub org |
+| `/api/admin/drafts` | List AI-generated module PRs |
+| `/api/webhooks/github` | Receive `workflow_run` + `issues` webhook events |
+
+### Key Lib Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/auth.ts` | NextAuth v4 config with GitHub provider |
+| `src/lib/api-auth.ts` | `getAuthenticatedContext()` — dual-auth (App token > OAuth fallback); `getAppContext()` for webhooks |
+| `src/lib/github-app.ts` | GitHub App installation token manager with 50-min cache |
+| `src/lib/db.ts` | SQLite layer — all tables, CRUD, and aggregate queries |
+| `src/lib/webhook-verify.ts` | HMAC SHA-256 signature verification (timing-safe) |
+| `src/lib/github.ts` | All Octokit operations: module content, workflows, issues, org invites, `distributeAssignment()` |
+| `src/lib/env.ts` | Environment config including `isTeacher()`, `hasGitHubApp` getter |
+| `src/lib/constants.ts` | `MODULE_META`, workflow file names, grading weights |
+
+### Production SaaS Environment Variables
+
+```
+# GitHub OAuth (required for all tiers)
+GITHUB_ID, GITHUB_SECRET, AUTH_SECRET
+NEXT_PUBLIC_GITHUB_ORG, NEXT_PUBLIC_GITHUB_REPO
+TEACHER_USERNAMES
+
+# GitHub App (gitClass branch — production tier)
+GITHUB_APP_ID
+GITHUB_APP_PRIVATE_KEY        # base64-encoded PEM
+GITHUB_APP_INSTALLATION_ID
+GITHUB_WEBHOOK_SECRET
+
+# Database
+DATABASE_PATH                  # default: data/gitclasses.db
+```
 
 ### Multi-Tenancy
-Tenant is determined by the `NEXT_PUBLIC_GITHUB_ORG` env var. The org admin role maps to "teacher"; org members are "students". All GitHub API calls are scoped to that org's repo.
+Tenant is determined by `NEXT_PUBLIC_GITHUB_ORG`. Teacher role is granted via `TEACHER_USERNAMES` env var (comma-separated GitHub usernames). All admin API routes enforce 403 for non-teachers. The `admin-guard.tsx` component wraps the entire `/admin` subtree client-side.
+
+### Next.js 16 Breaking Changes to Remember
+- `params` is a Promise in route handlers and page props — always `await params`
+- `useSearchParams()` requires a `<Suspense>` boundary (wrap the component)
+- `cookies()` and `headers()` are async
