@@ -40,6 +40,11 @@ const WORKFLOWS: WorkflowDef[] = [
         placeholder: "e.g., Introduction to APIs",
       },
       {
+        key: "module_number",
+        label: "Module Number",
+        placeholder: "e.g., 03",
+      },
+      {
         key: "difficulty",
         label: "Difficulty Level",
         placeholder: "beginner, intermediate, or advanced",

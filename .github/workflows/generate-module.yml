@@ -57,7 +57,7 @@ jobs:
           MODULE_NUM: ${{ inputs.module_number }}
           MODULE_TOPIC: ${{ inputs.topic }}
         run: |
-          MODULE_DIR="curriculum-master/modules/module-${MODULE_NUM}-ai-generated"
+          export MODULE_DIR="curriculum-master/modules/module-${MODULE_NUM}-ai-generated"
           mkdir -p "${MODULE_DIR}/starter-code" "${MODULE_DIR}/tests"
 
           RESPONSE_FILE="${{ steps.ai-content.outputs.response-file }}"
