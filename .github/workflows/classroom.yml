@@ -29,7 +29,7 @@ jobs:
           pip install pytest pytest-json-report
 
       - name: Run AutoGrader — Module 01 Basics
-        id: grader-m01
+        id: grader
         uses: classroom-resources/autograding-python-grader@v1
         with:
           setup-command: 'pip install pytest'
@@ -39,9 +39,9 @@ jobs:
       - name: Report grades to GitHub Classroom
         uses: classroom-resources/autograding-grading-reporter@v1
         env:
-          AUTOGRADING_OUTPUT: ${{ steps.grader-m01.outputs.result }}
+          GRADER_RESULTS: "${{ steps.grader.outputs.result }}"
         with:
-          runners: grader-m01
+          runners: grader
 
       # --- AI-Powered Failure Explanation ---
       # If tests failed, explain why in plain English
@@ -70,9 +70,11 @@ jobs:
         uses: actions/ai-inference@v1
         with:
           prompt-file: '.github/prompts/explain-test-failure.prompt.yml'
-          input: |
-            test_output: ${{ steps.test-output.outputs.test_output }}
-            student_code: ${{ steps.test-output.outputs.student_code }}
+          input: >
+            {
+              "test_output": ${{ toJSON(steps.test-output.outputs.test_output) }},
+              "student_code": ${{ toJSON(steps.test-output.outputs.student_code) }}
+            }
 
       - name: Post AI explanation as PR comment
         if: failure()
@@ -154,9 +156,11 @@ jobs:
         uses: actions/ai-inference@v1
         with:
           prompt-file: '.github/prompts/generate-quiz.prompt.yml'
-          input: |
-            student_code: ${{ steps.quiz-code.outputs.student_code }}
-            module_topic: ${{ steps.quiz-code.outputs.module_topic }}
+          input: >
+            {
+              "student_code": ${{ toJSON(steps.quiz-code.outputs.student_code) }},
+              "module_topic": ${{ toJSON(steps.quiz-code.outputs.module_topic) }}
+            }
 
       - name: Post quiz as PR comment
         if: success() && steps.quiz-code.outputs.skip != 'true'
