@@ -50,6 +50,8 @@ jobs:
         uses: actions/ai-inference@v1
         with:
           prompt-file: '.github/prompts/generate-module.prompt.yml'
+          max-completion-tokens: 8192
+          max-tokens: 8192
           input: |
             topic: ${{ toJSON(inputs.topic) }}
             module_number: ${{ toJSON(inputs.module_number) }}
