@@ -3,7 +3,7 @@
 # Module 6: Python Functions
 
 Welcome to Module 6 of gitClasses! In this module, you'll learn about Python functions, a fundamental building block in programming. By the end of this module, you'll be able to define and call functions, pass parameters, and return values. This knowledge will empower you to write more organized and reusable code.
-
+ .
 ## Learning Objectives
 By the end of this module, you will:
 - Understand the purpose and structure of functions in Python.
