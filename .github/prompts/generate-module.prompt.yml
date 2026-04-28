@@ -40,3 +40,5 @@ messages:
       (5-8 curated resources: videos, documentation, cheat sheets. Use real, well-known URLs from sites like YouTube, MDN, docs.python.org, etc.)
 
 model: openai/gpt-4o-mini
+modelParameters:
+  maxCompletionTokens: 8192
