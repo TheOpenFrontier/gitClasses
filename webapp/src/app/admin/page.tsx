@@ -13,6 +13,13 @@ import {
   GraduationCap,
   Search,
   ArrowUpDown,
+  UserPlus,
+  Mail,
+  Send,
+  Loader2,
+  X,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
 import { ProgressBar } from "@/components/progress-bar";
@@ -32,16 +39,25 @@ export default function AdminDashboard() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [inviteInput, setInviteInput] = useState("");
+  const [inviteStatus, setInviteStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [inviteError, setInviteError] = useState("");
+  const [pendingInvites, setPendingInvites] = useState<
+    { id: number; login: string | null; email: string | null; createdAt: string }[]
+  >([]);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/admin/students").then((r) => r.json()),
       fetch("/api/admin/overview").then((r) => r.json()),
+      fetch("/api/admin/invite").then((r) => r.json()),
     ])
-      .then(([studentsData, overviewData]) => {
+      .then(([studentsData, overviewData, inviteData]) => {
         setStudents(studentsData.students || []);
         setOverview(overviewData.overview || null);
         setPendingContracts(overviewData.pendingContracts || []);
+        setPendingInvites(inviteData.invitations || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -64,6 +80,71 @@ export default function AdminDashboard() {
     } finally {
       setApprovingId(null);
     }
+  }
+
+  async function handleInvite(e: React.FormEvent) {
+    e.preventDefault();
+    if (!inviteInput.trim()) return;
+    setInviteStatus("loading");
+    setInviteError("");
+    try {
+      const res = await fetch("/api/admin/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usernameOrEmail: inviteInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to invite");
+      setInviteStatus("success");
+      setInviteInput("");
+      // Refresh pending invites
+      fetch("/api/admin/invite").then(r => r.json()).then(d => setPendingInvites(d.invitations || []));
+      setTimeout(() => setInviteStatus("idle"), 3000);
+    } catch (err: unknown) {
+      setInviteError(err instanceof Error ? err.message : "Unknown error");
+      setInviteStatus("error");
+    }
+  }
+
+  async function handleBulkInvite() {
+    const usernames = inviteInput.split(/[,\n]+/).map(u => u.trim()).filter(Boolean);
+    if (usernames.length === 0) return;
+    setInviteStatus("loading");
+    setInviteError("");
+    const errors: string[] = [];
+    for (const u of usernames) {
+      try {
+        const res = await fetch("/api/admin/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usernameOrEmail: u }),
+        });
+        const data = await res.json();
+        if (!res.ok) errors.push(`${u}: ${data.error}`);
+      } catch { errors.push(`${u}: Network error`); }
+    }
+    if (errors.length > 0) {
+      setInviteError(errors.join(" · "));
+      setInviteStatus("error");
+    } else {
+      setInviteStatus("success");
+      setInviteInput("");
+      setTimeout(() => setInviteStatus("idle"), 3000);
+    }
+    fetch("/api/admin/invite").then(r => r.json()).then(d => setPendingInvites(d.invitations || []));
+  }
+
+  async function handleCancelInvite(invitationId: number) {
+    setCancellingId(invitationId);
+    try {
+      await fetch("/api/admin/invite", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invitationId }),
+      });
+      setPendingInvites(prev => prev.filter(i => i.id !== invitationId));
+    } catch { /* silently fail */ }
+    finally { setCancellingId(null); }
   }
 
   function toggleSort(key: SortKey) {
@@ -160,6 +241,108 @@ export default function AdminDashboard() {
           value={overview?.contractsApproved ?? 0}
           color="purple"
         />
+      </div>
+
+      {/* Invite Students Section */}
+      <div className="mt-8 rounded-xl border border-indigo-200 bg-indigo-50/50 p-6 dark:border-indigo-900 dark:bg-indigo-950/30">
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+            <UserPlus className="h-5 w-5 text-indigo-500" />
+            Invite Students
+          </h2>
+          <a
+            href={`https://github.com/orgs/${process.env.NEXT_PUBLIC_GITHUB_ORG || ''}/people`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800"
+          >
+            Manage on GitHub <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Invite students to join the GitHub organization. They&apos;ll receive an email invitation and can then fork the repo to begin.
+        </p>
+
+        <form onSubmit={handleInvite} className="mt-4 flex gap-3">
+          <div className="relative flex-1">
+            <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={inviteInput}
+              onChange={(e) => setInviteInput(e.target.value)}
+              placeholder="GitHub username or email (comma-separated for bulk)"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={inviteStatus === "loading" || !inviteInput.trim()}
+            className="flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+          >
+            {inviteStatus === "loading" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            {inviteInput.includes(",") || inviteInput.includes("\n") ? "Bulk Invite" : "Send Invite"}
+          </button>
+        </form>
+
+        {inviteStatus === "success" && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-emerald-600">
+            <CheckCircle className="h-4 w-4" />
+            Invitation sent successfully!
+          </div>
+        )}
+        {inviteStatus === "error" && (
+          <div className="mt-3 flex items-center gap-2 text-sm text-red-600">
+            <AlertCircle className="h-4 w-4" />
+            {inviteError}
+          </div>
+        )}
+
+        {/* Pending Invitations */}
+        {pendingInvites.length > 0 && (
+          <div className="mt-5">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Pending Invitations ({pendingInvites.length})
+            </h3>
+            <div className="mt-2 space-y-2">
+              {pendingInvites.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-2.5 dark:border-gray-700 dark:bg-gray-900"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 dark:bg-indigo-900/50">
+                      <Mail className="h-4 w-4 text-indigo-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {inv.login || inv.email || "Unknown"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Invited {new Date(inv.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleCancelInvite(inv.id)}
+                    disabled={cancellingId === inv.id}
+                    className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950 transition-colors"
+                    title="Cancel invitation"
+                  >
+                    {cancellingId === inv.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <X className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Two column: Pending Contracts + Search */}

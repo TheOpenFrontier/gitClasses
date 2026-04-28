@@ -406,3 +406,98 @@ export async function approveContract(
   });
 }
 
+// ─── Student Invitation helpers ─────────────────────────────────────
+
+export interface PendingInvitation {
+  id: number;
+  login: string | null;
+  email: string | null;
+  role: string;
+  createdAt: string;
+}
+
+/**
+ * Invite a GitHub user to the org by username or email.
+ * If a username is provided, we resolve their user ID first.
+ * If an email is provided, we invite by email directly.
+ */
+export async function inviteUserToOrg(
+  octokit: Octokit,
+  org: string,
+  usernameOrEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  const isEmail = usernameOrEmail.includes("@");
+
+  try {
+    if (isEmail) {
+      await octokit.orgs.createInvitation({
+        org,
+        email: usernameOrEmail,
+        role: "direct_member",
+      });
+    } else {
+      // Look up user ID first
+      const { data: user } = await octokit.users.getByUsername({
+        username: usernameOrEmail,
+      });
+
+      await octokit.orgs.createInvitation({
+        org,
+        invitee_id: user.id,
+        role: "direct_member",
+      });
+    }
+
+    return { success: true };
+  } catch (e: unknown) {
+    const message =
+      e instanceof Error ? e.message : "Failed to send invitation";
+
+    // Surface common issues clearly
+    if (message.includes("already a member")) {
+      return { success: false, error: "User is already a member of this organization." };
+    }
+    if (message.includes("already been invited")) {
+      return { success: false, error: "An invitation is already pending for this user." };
+    }
+    if (message.includes("Not Found")) {
+      return { success: false, error: `GitHub user "${usernameOrEmail}" not found.` };
+    }
+
+    return { success: false, error: message };
+  }
+}
+
+export async function listPendingInvitations(
+  octokit: Octokit,
+  org: string
+): Promise<PendingInvitation[]> {
+  try {
+    const { data } = await octokit.orgs.listPendingInvitations({
+      org,
+      per_page: 50,
+    });
+
+    return data.map((inv) => ({
+      id: inv.id,
+      login: inv.login,
+      email: inv.email,
+      role: inv.role,
+      createdAt: inv.created_at,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function cancelInvitation(
+  octokit: Octokit,
+  org: string,
+  invitationId: number
+): Promise<void> {
+  await octokit.orgs.cancelInvitation({
+    org,
+    invitation_id: invitationId,
+  });
+}
+
