@@ -51,8 +51,11 @@ jobs:
         run: |
           # Re-run pytest to capture output (the grader step doesn't expose raw output)
           TEST_OUTPUT=$(python -m pytest curriculum-master/modules/module-01-basics/tests/test_basics.py -v --tb=short 2>&1 || true)
+          # Indent output by 6 spaces to align with YAML block in prompt file
+          INDENTED_TEST_OUTPUT=$(echo "$TEST_OUTPUT" | tail -50 | sed 's/^/      /')
+          
           echo "test_output<<EOF" >> $GITHUB_OUTPUT
-          echo "$TEST_OUTPUT" | tail -50 >> $GITHUB_OUTPUT
+          echo "$INDENTED_TEST_OUTPUT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
           # Also grab the student's code
@@ -60,8 +63,11 @@ jobs:
           if [ -f "curriculum-master/modules/module-01-basics/starter-code/app.py" ]; then
             STUDENT_CODE=$(cat curriculum-master/modules/module-01-basics/starter-code/app.py | head -100)
           fi
+          # Indent code by 6 spaces to align with YAML block in prompt file
+          INDENTED_STUDENT_CODE=$(echo "$STUDENT_CODE" | sed 's/^/      /')
+          
           echo "student_code<<EOF" >> $GITHUB_OUTPUT
-          echo "$STUDENT_CODE" >> $GITHUB_OUTPUT
+          echo "$INDENTED_STUDENT_CODE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: AI explains test failure
@@ -134,9 +140,12 @@ jobs:
             exit 0
           fi
 
+          # Indent output by 6 spaces to align with YAML block in prompt file
+          INDENTED_STUDENT_CODE=$(echo "$STUDENT_CODE" | sed 's/^/      /')
+
           echo "skip=false" >> $GITHUB_OUTPUT
           echo "student_code<<EOF" >> $GITHUB_OUTPUT
-          echo "$STUDENT_CODE" >> $GITHUB_OUTPUT
+          echo "$INDENTED_STUDENT_CODE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
           # Detect module topic from the first module README

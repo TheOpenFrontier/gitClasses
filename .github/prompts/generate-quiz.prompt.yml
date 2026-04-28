@@ -20,7 +20,7 @@ messages:
       A student's code passed all AutoGrader tests. Here is their code:
 
       ```python
-      {{student_code}}
+{{student_code}}
       ```
 
       The module topic is: {{module_topic}}

@@ -19,12 +19,12 @@ messages:
       A student pushed code and the AutoGrader test failed. Here is the test output:
 
       ```
-      {{test_output}}
+{{test_output}}
       ```
 
       The student's code file is:
       ```python
-      {{student_code}}
+{{student_code}}
       ```
 
       Explain the failure in plain English and suggest how to fix it.
