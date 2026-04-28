@@ -501,3 +501,176 @@ export async function cancelInvitation(
   });
 }
 
+// ─── Draft Module Review helpers ────────────────────────────────────
+
+export interface DraftModule {
+  number: number;
+  title: string;
+  body: string;
+  htmlUrl: string;
+  branch: string;
+  createdAt: string;
+}
+
+export interface DraftFile {
+  filename: string;
+  status: string; // added, modified, removed
+  content?: string;
+  sha?: string;
+}
+
+export async function listDraftModules(
+  octokit: Octokit,
+  owner: string,
+  repo: string
+): Promise<DraftModule[]> {
+  try {
+    const { data } = await octokit.pulls.list({
+      owner,
+      repo,
+      state: "open",
+      sort: "created",
+      direction: "desc",
+      per_page: 50,
+    });
+
+    return data
+      .filter((pr) => pr.labels.some((l) => l.name === "ai-generated"))
+      .map((pr) => ({
+        number: pr.number,
+        title: pr.title,
+        body: pr.body || "",
+        htmlUrl: pr.html_url,
+        branch: pr.head.ref,
+        createdAt: pr.created_at,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getDraftModuleDetails(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<{ draft: DraftModule; files: DraftFile[] } | null> {
+  try {
+    const { data: pr } = await octokit.pulls.get({
+      owner,
+      repo,
+      pull_number: pullNumber,
+    });
+
+    const { data: filesData } = await octokit.pulls.listFiles({
+      owner,
+      repo,
+      pull_number: pullNumber,
+    });
+
+    const branch = pr.head.ref;
+    
+    // Fetch file contents from the PR branch
+    const files = await Promise.all(
+      filesData.map(async (f) => {
+        let content: string | undefined;
+        let sha: string | undefined;
+        
+        if (f.status !== "removed") {
+          try {
+            const { data: fileData } = await octokit.repos.getContent({
+              owner,
+              repo,
+              path: f.filename,
+              ref: branch,
+            });
+            
+            if (!Array.isArray(fileData) && fileData.type === "file") {
+              content = Buffer.from(fileData.content, "base64").toString("utf-8");
+              sha = fileData.sha;
+            }
+          } catch (e) {
+            console.error(`Failed to get content for ${f.filename}`, e);
+          }
+        }
+        
+        return {
+          filename: f.filename,
+          status: f.status,
+          content,
+          sha,
+        };
+      })
+    );
+
+    return {
+      draft: {
+        number: pr.number,
+        title: pr.title,
+        body: pr.body || "",
+        htmlUrl: pr.html_url,
+        branch,
+        createdAt: pr.created_at,
+      },
+      files,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function updateDraftFile(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  branch: string,
+  path: string,
+  content: string,
+  sha: string,
+  message: string = "Apply teacher review edits"
+): Promise<void> {
+  await octokit.repos.createOrUpdateFileContents({
+    owner,
+    repo,
+    path,
+    message,
+    content: Buffer.from(content).toString("base64"),
+    sha,
+    branch,
+  });
+}
+
+export async function mergeDraftModule(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<void> {
+  // Merge the PR
+  const { data } = await octokit.pulls.merge({
+    owner,
+    repo,
+    pull_number: pullNumber,
+    merge_method: "squash",
+  });
+  
+  // Try to delete the branch after merge
+  if (data.merged) {
+    try {
+      const { data: pr } = await octokit.pulls.get({
+        owner,
+        repo,
+        pull_number: pullNumber,
+      });
+      
+      await octokit.git.deleteRef({
+        owner,
+        repo,
+        ref: `heads/${pr.head.ref}`,
+      });
+    } catch {
+      // Ignored if branch deletion fails
+    }
+  }
+}
+

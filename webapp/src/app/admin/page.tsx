@@ -212,6 +212,15 @@ export default function AdminDashboard() {
             Classroom overview &amp; student progress tracking
           </p>
         </div>
+        <div className="ml-auto">
+          <Link
+            href="/admin/drafts"
+            className="flex items-center gap-2 rounded-lg bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900 dark:text-indigo-300 dark:hover:bg-indigo-800 transition-colors"
+          >
+            Review AI Modules
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Stats Row */}
