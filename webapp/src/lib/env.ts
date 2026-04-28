@@ -10,6 +10,22 @@ export const env = {
     .split(",")
     .map((u) => u.trim().toLowerCase())
     .filter(Boolean),
+  // GitHub App credentials (production SaaS tier)
+  githubAppId: process.env.GITHUB_APP_ID || "",
+  githubAppPrivateKey: process.env.GITHUB_APP_PRIVATE_KEY
+    ? Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY, "base64").toString(
+        "utf-8"
+      )
+    : "",
+  githubAppInstallationId: process.env.GITHUB_APP_INSTALLATION_ID || "",
+  githubWebhookSecret: process.env.GITHUB_WEBHOOK_SECRET || "",
+  get hasGitHubApp(): boolean {
+    return !!(
+      this.githubAppId &&
+      this.githubAppPrivateKey &&
+      this.githubAppInstallationId
+    );
+  },
 };
 
 /** Check if a GitHub username has teacher privileges */
