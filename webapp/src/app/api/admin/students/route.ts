@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedContext } from "@/lib/api-auth";
 import { isTeacher } from "@/lib/env";
-import {
-  listOrgMembers,
-  getWorkflowRunsByActor,
-  listContractIssues,
-} from "@/lib/github";
+import { db } from "@/lib/db";
+import { listOrgMembers } from "@/lib/github";
 import { MODULE_META } from "@/lib/constants";
 import type { StudentProgress, ModuleProgress } from "@/types";
 
@@ -15,84 +12,77 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { octokit, owner, repo, session } = ctx;
+  const { octokit, owner, session } = ctx;
   const username = session.user.githubUsername;
 
   if (!isTeacher(username)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Fetch members and contracts in parallel
-  const [members, contracts] = await Promise.all([
-    listOrgMembers(octokit, owner),
-    listContractIssues(octokit, owner, repo),
-  ]);
+  // Sync org members into DB
+  const members = await listOrgMembers(octokit, owner);
+  for (const m of members) {
+    if (!isTeacher(m.login)) {
+      db.upsertStudent({ username: m.login, avatarUrl: m.avatarUrl });
+    }
+  }
 
-  // Exclude teachers from the student list
-  const students = members.filter((m) => !isTeacher(m.login));
+  // Build progress for each student from DB
+  const students = db.listStudents();
+  const moduleSlugs = Object.keys(MODULE_META);
 
-  // Build progress for each student
-  const studentProgress: StudentProgress[] = await Promise.all(
-    students.map(async (student) => {
-      const runs = await getWorkflowRunsByActor(
-        octokit,
-        owner,
-        repo,
-        student.login
-      );
+  const studentProgress: StudentProgress[] = students
+    .filter((s) => !isTeacher(s.username))
+    .map((student) => {
+      const grades = db.getLatestGrades(student.username);
+      const contract = db.getContractByUser(student.username);
 
-      // Find contract for this student
-      const contract = contracts.find(
-        (c) =>
-          c.username.toLowerCase() === student.login.toLowerCase() ||
-          c.username.includes(student.login)
-      );
-
-      // Compute per-module progress
-      const moduleSlugs = Object.keys(MODULE_META);
       const modules: ModuleProgress[] = moduleSlugs.map((slug) => {
         const meta = MODULE_META[slug];
-        const moduleRuns = runs.filter(
-          (r) =>
-            r.name.toLowerCase().includes(slug) ||
-            r.name.toLowerCase().includes(meta.title.toLowerCase())
-        );
-
-        const latestRun = moduleRuns[0];
-        const passed =
-          latestRun?.status === "completed" &&
-          latestRun?.conclusion === "success";
+        const grade = grades.find((g) => g.module_slug === slug);
+        const allGrades = db
+          .getStudentGrades(student.username)
+          .filter((g) => g.module_slug === slug);
 
         return {
           moduleSlug: slug,
           moduleTitle: meta.title,
-          latestRun,
-          score: passed ? meta.maxScore : 0,
+          latestRun: grade
+            ? {
+                id: grade.workflow_run_id || 0,
+                name: "AutoGrader",
+                status: "completed" as const,
+                conclusion: grade.passed
+                  ? ("success" as const)
+                  : ("failure" as const),
+                createdAt: grade.created_at,
+                htmlUrl: grade.workflow_url || "",
+              }
+            : undefined,
+          score: grade?.score || 0,
           maxScore: meta.maxScore,
-          attempts: moduleRuns.length,
-          passed,
+          attempts: allGrades.length,
+          passed: grade?.passed === 1,
         };
       });
 
       const overallScore = modules.reduce((sum, m) => sum + m.score, 0);
       const overallMaxScore = modules.reduce((sum, m) => sum + m.maxScore, 0);
 
-      const lastRun = runs[0];
-
       return {
-        username: student.login,
-        name: student.login,
-        avatarUrl: student.avatarUrl,
+        username: student.username,
+        name: student.name || student.username,
+        avatarUrl: student.avatar_url || "",
         modules,
-        contractStatus: contract?.status || "none",
-        contractIssueNumber: contract?.number,
-        learningPath: contract?.learningPath,
-        lastActivity: lastRun?.createdAt,
+        contractStatus:
+          (contract?.status as StudentProgress["contractStatus"]) || "none",
+        contractIssueNumber: contract?.issue_number || undefined,
+        learningPath: contract?.learning_path as "A" | "B" | "C" | undefined,
+        lastActivity: grades[0]?.created_at,
         overallScore,
         overallMaxScore,
       };
-    })
-  );
+    });
 
   return NextResponse.json({ students: studentProgress });
 }

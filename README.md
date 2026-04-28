@@ -120,8 +120,11 @@ gitClasses/
 ├── docs/
 │   ├── AI Agents/Agentic.md       # AI architecture documentation
 │   └── TEACHER_SETUP.md           # Full teacher deployment guide
-├── webapp/                        # Next.js Teacher Admin & Student Dashboard
-│   ├── src/                       # Webapp source code (app, components, lib)
+├── webapp/                        # Next.js Teacher Admin & Student Dashboard (SaaS platform)
+│   ├── src/
+│   │   ├── app/                   # App Router routes + API handlers
+│   │   ├── components/            # Shared UI components
+│   │   └── lib/                   # Auth, DB, GitHub API, env config
 │   └── package.json               # Webapp dependencies
 ├── COMMUNITY_GUIDELINES.md        # Code of Review & collaboration norms
 └── README.md                      # ← You are here
@@ -136,6 +139,31 @@ gitClasses/
 - [ ] AutoGrader passing (green check on latest commit)
 - [ ] 2 peer PR reviews left (link them in your PR description)
 - [ ] 1 resource added to `curriculum-master/community-resources/`
+
+---
+
+---
+
+## Webapp — Teacher Admin & Student Dashboard
+
+The `/webapp` directory contains a full Next.js 16 SaaS platform with two deployment tiers:
+
+| Tier | Branch | Description |
+|------|--------|-------------|
+| **Free / Classroom** | `main` | Stateless — GitHub OAuth, no database, GitHub Classroom handles repos |
+| **Production SaaS** | `gitClass` | GitHub App auth, SQLite database, webhook-driven grades, automated repo distribution |
+
+**Quick start:**
+```bash
+cd webapp
+npm install
+cp .env.local.example .env.local  # fill in credentials
+npm run dev
+```
+
+Routes: `/` landing · `/dashboard` student progress · `/courses` module catalog · `/ai` AI assistant · `/admin` teacher panel · `/docs` documentation hub
+
+> See [`docs/WebApp/ProductionSaaS.md`](./docs/WebApp/ProductionSaaS.md) for the full production deployment guide.
 
 ---
 

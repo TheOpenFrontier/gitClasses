@@ -653,7 +653,7 @@ export async function mergeDraftModule(
     pull_number: pullNumber,
     merge_method: "squash",
   });
-  
+
   // Try to delete the branch after merge
   if (data.merged) {
     try {
@@ -662,7 +662,7 @@ export async function mergeDraftModule(
         repo,
         pull_number: pullNumber,
       });
-      
+
       await octokit.git.deleteRef({
         owner,
         repo,
@@ -672,5 +672,62 @@ export async function mergeDraftModule(
       // Ignored if branch deletion fails
     }
   }
+}
+
+// ─── Assignment Distribution (Production SaaS) ─────────────────────
+
+export async function createRepoFromTemplate(
+  octokit: Octokit,
+  templateOwner: string,
+  templateRepo: string,
+  org: string,
+  repoName: string
+): Promise<{ fullName: string; htmlUrl: string }> {
+  const { data } = await octokit.repos.createUsingTemplate({
+    template_owner: templateOwner,
+    template_repo: templateRepo,
+    owner: org,
+    name: repoName,
+    private: true,
+  });
+  return { fullName: data.full_name, htmlUrl: data.html_url };
+}
+
+export async function addCollaborator(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  username: string,
+  permission: "pull" | "push" | "admin" = "push"
+): Promise<void> {
+  await octokit.repos.addCollaborator({
+    owner,
+    repo,
+    username,
+    permission,
+  });
+}
+
+export async function distributeAssignment(
+  octokit: Octokit,
+  templateOwner: string,
+  templateRepo: string,
+  org: string,
+  username: string,
+  assignmentSlug: string
+): Promise<{ repoFullName: string }> {
+  const repoName = `${username}-${assignmentSlug}`;
+  const { fullName } = await createRepoFromTemplate(
+    octokit,
+    templateOwner,
+    templateRepo,
+    org,
+    repoName
+  );
+
+  // Add student as collaborator with push access
+  await addCollaborator(octokit, org, repoName, username, "push");
+
+  return { repoFullName: fullName };
 }
 
