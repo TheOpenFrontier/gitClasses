@@ -15,6 +15,11 @@ messages:
       Use encouraging, inclusive language appropriate for high school and college students.
       Each module should take 2-4 hours to complete.
 
+      CRITICAL FORMATTING INSTRUCTIONS:
+      You MUST generate exactly 4 files. You must separate each file with a markdown header that looks exactly like this: `## FILE: <path>`.
+      You must not forget any of the 4 files requested.
+      Do not start the response with anything other than the first file header.
+
   - role: user
     content: |
       Generate a complete gitClasses module for the following topic:
